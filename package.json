@@ -35,11 +35,14 @@
   "dependencies": {
     "@fedify/fedify": "^2.3.1",
     "@fedify/hono": "^2.3.1",
+    "@hono/zod-validator": "^0.8.0",
+    "antd": "^6.5.0",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.12.27",
     "postgres": "^3.4.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router": "^8.1.0"
+    "react-router": "^8.1.0",
+    "zod": "^4.4.3"
   }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getInstanceSummary } from "../api/instanceApi";
+import { getInstanceSummary } from "../api/client";
 
 const fallbackInstance = {
   name: "yuragi",

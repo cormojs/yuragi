@@ -1,8 +1,15 @@
+import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
+import { z } from "zod";
+import { authController } from "./AuthController";
 import { getOrigin } from "../LocalActor";
 import { actorService, type ActorService } from "../service/actorService";
 
 const mastodonNotFound = { error: "Record not found" };
+const accountLookupQuerySchema = z.object({
+  acct: z.string().trim().min(1).max(255),
+});
+const accountIdParamSchema = z.object({ id: z.uuid() });
 
 export function createApiController(service: ActorService = actorService) {
   return new Hono()
@@ -60,43 +67,61 @@ export function createApiController(service: ActorService = actorService) {
         200,
       );
     })
-    .get("/api/v1/accounts/lookup", async (ctx) => {
-      const origin = getOrigin(ctx.req.raw);
+    .get(
+      "/api/v1/accounts/lookup",
+      zValidator("query", accountLookupQuerySchema, (result, ctx) => {
+        if (!result.success) {
+          return ctx.json({ error: "The acct query parameter is required" }, 400);
+        }
+      }),
+      async (ctx) => {
+        const origin = getOrigin(ctx.req.raw);
+        const { acct } = ctx.req.valid("query");
 
-      const acct = ctx.req.query("acct");
-      if (acct == null || acct === "") {
-        return ctx.json({ error: "The acct query parameter is required" }, 400);
-      }
+        const actor = await service.findActorByAcct(acct);
+        if (actor == null) return ctx.json(mastodonNotFound, 404);
 
-      const actor = await service.findActorByAcct(acct);
-      if (actor == null) return ctx.json(mastodonNotFound, 404);
+        return ctx.json(await service.toMastodonAccount(actor, origin), 200);
+      },
+    )
+    .get(
+      "/api/v1/accounts/:id",
+      zValidator("param", accountIdParamSchema, (result, ctx) => {
+        if (!result.success) return ctx.json({ error: "Invalid account ID" }, 400);
+      }),
+      async (ctx) => {
+        const origin = getOrigin(ctx.req.raw);
+        const { id } = ctx.req.valid("param");
 
-      return ctx.json(await service.toMastodonAccount(actor, origin), 200);
-    })
-    .get("/api/v1/accounts/:id", async (ctx) => {
-      const origin = getOrigin(ctx.req.raw);
+        const actor = await service.findActorById(id);
+        if (actor == null) return ctx.json(mastodonNotFound, 404);
 
-      const actor = await service.findActorById(ctx.req.param("id"));
-      if (actor == null) return ctx.json(mastodonNotFound, 404);
+        return ctx.json(await service.toMastodonAccount(actor, origin), 200);
+      },
+    )
+    .get(
+      "/api/v1/accounts/:id/statuses",
+      zValidator("param", accountIdParamSchema, (result, ctx) => {
+        if (!result.success) return ctx.json({ error: "Invalid account ID" }, 400);
+      }),
+      async (ctx) => {
+        const origin = getOrigin(ctx.req.raw);
+        const { id } = ctx.req.valid("param");
 
-      return ctx.json(await service.toMastodonAccount(actor, origin), 200);
-    })
-    .get("/api/v1/accounts/:id/statuses", async (ctx) => {
-      const origin = getOrigin(ctx.req.raw);
+        const actor = await service.findActorById(id);
+        if (actor == null) return ctx.json(mastodonNotFound, 404);
 
-      const actor = await service.findActorById(ctx.req.param("id"));
-      if (actor == null) return ctx.json(mastodonNotFound, 404);
-
-      const actorNotes = await service.listNotesForActor(actor.id);
-      return ctx.json(
-        await Promise.all(
-          actorNotes.map((note) =>
-            service.toMastodonStatus(note, actor, origin),
+        const actorNotes = await service.listNotesForActor(actor.id);
+        return ctx.json(
+          await Promise.all(
+            actorNotes.map((note) =>
+              service.toMastodonStatus(note, actor, origin),
+            ),
           ),
-        ),
-        200,
-      );
-    })
+          200,
+        );
+      },
+    )
     .get("/api/v1/timelines/public", async (ctx) => {
       const origin = getOrigin(ctx.req.raw);
 
@@ -120,5 +145,5 @@ export function createApiController(service: ActorService = actorService) {
     });
 }
 
-export const apiController = createApiController();
+export const apiController = createApiController().route("/", authController);
 export type AppType = typeof apiController;

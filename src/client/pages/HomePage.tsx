@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { getCurrentAccount } from "../api/authApi";
+import { Alert, Card, List, Spin, Typography } from "antd";
+import { getCurrentAccount } from "../api/client";
 import { PageHeader } from "../components/PageHeader";
 import { PostComposer } from "../components/PostComposer";
 import { useTimeline } from "../hooks/useTimeline";
@@ -21,19 +22,27 @@ export function HomePage() {
         description="Local updates from the yuragi instance."
       />
       {isAuthenticated ? <PostComposer onPosted={reload} /> : null}
-      {isLoading ? <p className="state-text">Loading timeline...</p> : null}
-      {error != null ? <p className="state-text">{error}</p> : null}
-      <div className="timeline" role="feed" aria-label="Timeline">
-        {posts.map((post) => (
-          <article className="post" key={post.id}>
-            <div className="post-meta">
-              <span>{post.author}</span>
-              <time dateTime={post.publishedAt}>{post.publishedLabel}</time>
-            </div>
-            <p>{post.content}</p>
-          </article>
-        ))}
-      </div>
+      {isLoading ? <Spin tip="Loading timeline..." /> : null}
+      {error != null ? <Alert message={error} showIcon type="error" /> : null}
+      <List
+        dataSource={posts}
+        itemLayout="vertical"
+        locale={{ emptyText: "No posts yet." }}
+        renderItem={(post) => (
+          <List.Item key={post.id}>
+            <Card>
+              <Typography.Text strong>{post.author}</Typography.Text>
+              <Typography.Text type="secondary">
+                {" · "}
+                <time dateTime={post.publishedAt}>{post.publishedLabel}</time>
+              </Typography.Text>
+              <Typography.Paragraph style={{ marginBottom: 0, marginTop: 12 }}>
+                {post.content}
+              </Typography.Paragraph>
+            </Card>
+          </List.Item>
+        )}
+      />
     </section>
   );
 }

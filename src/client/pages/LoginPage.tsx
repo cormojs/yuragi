@@ -1,17 +1,20 @@
-import { type FormEvent, useState } from "react";
+import { Alert, Button, Card, Form, Input } from "antd";
+import { useState } from "react";
 import { useNavigate } from "react-router";
-import { login } from "../api/authApi";
+import { login } from "../api/client";
 import { PageHeader } from "../components/PageHeader";
+
+type LoginValues = {
+  identifier: string;
+  password: string;
+};
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleSubmit({ identifier, password }: LoginValues) {
     setIsSubmitting(true);
     setError(null);
     try {
@@ -26,33 +29,22 @@ export function LoginPage() {
   }
 
   return (
-    <section className="page">
+    <section className="page login-page">
       <PageHeader title="Log in" description="Sign in to your yuragi account." />
-      <form className="auth-form" onSubmit={handleSubmit}>
-        <label>
-          Account identifier
-          <input
-            autoComplete="username"
-            onChange={(event) => setIdentifier(event.target.value)}
-            required
-            value={identifier}
-          />
-        </label>
-        <label>
-          Password
-          <input
-            autoComplete="current-password"
-            onChange={(event) => setPassword(event.target.value)}
-            required
-            type="password"
-            value={password}
-          />
-        </label>
-        {error != null ? <p className="form-error">{error}</p> : null}
-        <button disabled={isSubmitting} type="submit">
-          {isSubmitting ? "Logging in…" : "Log in"}
-        </button>
-      </form>
+      <Card>
+        <Form<LoginValues> layout="vertical" onFinish={handleSubmit}>
+          <Form.Item label="Account identifier" name="identifier" rules={[{ required: true }]}>
+            <Input autoComplete="username" />
+          </Form.Item>
+          <Form.Item label="Password" name="password" rules={[{ required: true }]}>
+            <Input.Password autoComplete="current-password" />
+          </Form.Item>
+          {error != null ? <Alert message={error} showIcon style={{ marginBottom: 16 }} type="error" /> : null}
+          <Button htmlType="submit" loading={isSubmitting} type="primary">
+            Log in
+          </Button>
+        </Form>
+      </Card>
     </section>
   );
 }

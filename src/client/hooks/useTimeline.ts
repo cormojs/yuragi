@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { timelineApi } from "../api/timelineApi";
+import { getLocalTimeline } from "../api/client";
 import type { TimelinePost } from "../types/timeline";
 
 export function useTimeline() {
@@ -10,7 +10,7 @@ export function useTimeline() {
   const reload = useCallback(async () => {
     setIsLoading(true);
     try {
-      const nextPosts = await timelineApi.getLocalTimeline();
+      const nextPosts = await getLocalTimeline();
       setPosts(nextPosts);
       setError(null);
     } catch (cause) {

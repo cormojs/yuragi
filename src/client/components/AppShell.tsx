@@ -1,6 +1,7 @@
+import { Button, Layout, Menu, Space, Typography } from "antd";
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router";
-import { getCurrentAccount, logout } from "../api/authApi";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { getCurrentAccount, logout } from "../api/client";
 import { useInstanceSummary } from "../hooks/useInstanceSummary";
 
 const navItems = [
@@ -10,6 +11,7 @@ const navItems = [
 
 export function AppShell() {
   const instance = useInstanceSummary();
+  const location = useLocation();
   const navigate = useNavigate();
   const [account, setAccount] = useState<{ username: string } | null>(null);
 
@@ -29,41 +31,37 @@ export function AppShell() {
     navigate("/login");
   }
 
-  const accountNavItems =
+  const accountNavItem =
     account == null
-      ? [{ to: "/login", label: "Log in" }]
-      : [{ to: `/users/${account.username}`, label: "Profile" }];
+      ? { to: "/login", label: "Log in" }
+      : { to: `/users/${account.username}`, label: "Profile" };
+  const menuItems = [...navItems, accountNavItem].map((item) => ({
+    key: item.to,
+    label: <NavLink to={item.to}>{item.label}</NavLink>,
+  }));
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar" aria-label="Primary navigation">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true" />
-          <span>{instance.name}</span>
-        </div>
-        <nav className="nav-list">
-          {[...navItems, ...accountNavItems].map((item) => (
-            <NavLink
-              className={({ isActive }) =>
-                isActive ? "nav-link nav-link-active" : "nav-link"
-              }
-              end={item.to === "/" || item.to === "/login"}
-              key={item.to}
-              to={item.to}
-            >
-              {item.label}
-            </NavLink>
-          ))}
+    <Layout className="app-shell">
+      <Layout.Sider breakpoint="lg" collapsedWidth="0" theme="light" width={256}>
+        <Space direction="vertical" size="large" style={{ display: "flex", padding: 24 }}>
+          <Typography.Title level={3} style={{ margin: 0 }}>
+            {instance.name}
+          </Typography.Title>
+          <Menu
+            items={menuItems}
+            mode="inline"
+            selectedKeys={[location.pathname]}
+          />
           {account != null ? (
-            <button className="nav-button nav-link" onClick={handleLogout} type="button">
+            <Button block onClick={() => void handleLogout()} type="text">
               Log out
-            </button>
+            </Button>
           ) : null}
-        </nav>
-      </aside>
-      <main className="content">
+        </Space>
+      </Layout.Sider>
+      <Layout.Content className="content">
         <Outlet />
-      </main>
-    </div>
+      </Layout.Content>
+    </Layout>
   );
 }

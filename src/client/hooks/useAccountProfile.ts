@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getAccountStatuses, lookupAccount } from "../api/accountApi";
+import { getAccountStatuses, lookupAccount } from "../api/client";
 import type { TimelinePost } from "../types/timeline";
 
 type AccountProfile = {

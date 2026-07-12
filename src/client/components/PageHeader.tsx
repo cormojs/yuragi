@@ -5,9 +5,10 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, description }: PageHeaderProps) {
   return (
-    <header className="page-header">
-      <h1>{title}</h1>
-      <p>{description}</p>
+    <header>
+      <Typography.Title level={2}>{title}</Typography.Title>
+      <Typography.Paragraph type="secondary">{description}</Typography.Paragraph>
     </header>
   );
 }
+import { Typography } from "antd";

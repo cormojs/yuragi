@@ -1,5 +1,6 @@
+import { Alert, Button, Card, Flex, Input, Typography } from "antd";
 import { type FormEvent, useState } from "react";
-import { createStatus } from "../api/statusApi";
+import { createStatus } from "../api/client";
 
 export function PostComposer({ onPosted }: { onPosted: () => Promise<void> }) {
   const [content, setContent] = useState("");
@@ -25,24 +26,34 @@ export function PostComposer({ onPosted }: { onPosted: () => Promise<void> }) {
   }
 
   return (
-    <form className="post-composer" onSubmit={handleSubmit}>
-      <label htmlFor="post-content">Write a post</label>
-      <textarea
-        id="post-content"
-        maxLength={500}
-        onChange={(event) => setContent(event.target.value)}
-        placeholder="What's happening?"
-        required
-        rows={4}
-        value={content}
-      />
-      <div className="composer-actions">
-        <span aria-live="polite">{remainingCharacters} characters remaining</span>
-        <button disabled={isSubmitting || content.trim().length === 0} type="submit">
-          {isSubmitting ? "Posting…" : "Post"}
-        </button>
-      </div>
-      {error != null ? <p className="form-error">{error}</p> : null}
-    </form>
+    <Card style={{ marginBottom: 16 }}>
+      <form onSubmit={handleSubmit}>
+        <Flex gap="middle" vertical>
+          <Typography.Text strong>Write a post</Typography.Text>
+          <Input.TextArea
+            maxLength={500}
+            onChange={(event) => setContent(event.target.value)}
+            placeholder="What's happening?"
+            required
+            rows={4}
+            value={content}
+          />
+          <Flex align="center" justify="space-between">
+            <Typography.Text type="secondary">
+              {remainingCharacters} characters remaining
+            </Typography.Text>
+            <Button
+              disabled={content.trim().length === 0}
+              htmlType="submit"
+              loading={isSubmitting}
+              type="primary"
+            >
+              Post
+            </Button>
+          </Flex>
+          {error != null ? <Alert message={error} showIcon type="error" /> : null}
+        </Flex>
+      </form>
+    </Card>
   );
 }

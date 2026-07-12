@@ -1,13 +1,11 @@
 import { Hono } from "hono";
 import { apiController } from "./controller/ApiController";
-import { authController } from "./controller/AuthController";
 import { createFederationMiddleware } from "./controller/FederationController";
 import { htmlController } from "./controller/HtmlController";
 
 export async function startServer(): Promise<void> {
   const app = new Hono();
   app.route("/", apiController);
-  app.route("/", authController);
   app.use("*", await createFederationMiddleware());
 
   app.use("*", async (ctx, next) => {

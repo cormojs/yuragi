@@ -32,6 +32,15 @@
 - アプリケーションから DB に接続する場合は、`DATABASE_URL` など環境変数経由で接続情報を渡してください。
 - PostgreSQL への型安全なアクセスは Drizzle ORM を使ってください。schema は `src/db/schema.ts`、DB client は `src/db/client.ts` に置きます。
 
+## API 実装方針
+
+- HTTP API は Hono のルート定義と Hono RPC を前提に実装してください。クライアントは `src/client/api/client.ts` の `hc` クライアントを使い、生の `fetch()` や API ごとのクライアントモジュールを増やさないでください。
+- RPC の型には公開 API の全ルートを含めてください。コントローラーを分割した場合も、クライアント向けの `AppType` は route を合成した後の型を公開してください。
+- リクエスト入力は `zod` と `@hono/zod-validator` の `zValidator` で検証してください。JSON body は `zValidator("json", schema, ...)`、query は `zValidator("query", schema, ...)`、path parameter は `zValidator("param", schema, ...)` を使います。
+- ハンドラ内で未検証の `ctx.req.json()`、`ctx.req.query()`、`ctx.req.param()` を直接使わず、`ctx.req.valid("json" | "query" | "param")` から検証済み・型付きの値を取得してください。
+- validation error は middleware で明示的なエラーレスポンスとして返し、ハンドラに不正な入力を到達させないでください。
+- RPC レスポンスは型アサーションで信頼しないでください。API 契約で表せないレスポンスは `unknown` として受け、実行時検証をしてから明示的に変換してください。
+
 ## よく使うコマンド
 
 ```bash

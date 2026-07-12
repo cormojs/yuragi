@@ -9,13 +9,16 @@ export function ExplorePage() {
         title="Explore"
         description="Topics and public conversations on this instance."
       />
-      <div className="topic-grid">
+      <Flex gap="small" wrap>
         {topics.map((topic) => (
-          <a className="topic" href={`/explore?tag=${topic}`} key={topic}>
-            #{topic}
-          </a>
+          <Card key={topic} size="small">
+            <a href={`/explore?tag=${topic}`}>
+              <Tag color="green">#{topic}</Tag>
+            </a>
+          </Card>
         ))}
-      </div>
+      </Flex>
     </section>
   );
 }
+import { Card, Flex, Tag } from "antd";
