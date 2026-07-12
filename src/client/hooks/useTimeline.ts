@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { timelineApi } from "../api/timelineApi";
 import type { TimelinePost } from "../types/timeline";
 
@@ -7,29 +7,22 @@ export function useTimeline() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    timelineApi
-      .getLocalTimeline()
-      .then((nextPosts) => {
-        if (!isMounted) return;
-        setPosts(nextPosts);
-        setError(null);
-      })
-      .catch((cause: unknown) => {
-        if (!isMounted) return;
-        setError(cause instanceof Error ? cause.message : "Timeline failed.");
-      })
-      .finally(() => {
-        if (!isMounted) return;
-        setIsLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
+  const reload = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const nextPosts = await timelineApi.getLocalTimeline();
+      setPosts(nextPosts);
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Timeline failed.");
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  return { posts, isLoading, error };
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  return { posts, isLoading, error, reload };
 }

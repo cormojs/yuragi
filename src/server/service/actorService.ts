@@ -139,6 +139,31 @@ export class ActorService {
     return this.storage.listPublicLocalNotes();
   }
 
+  async createPublicNote({
+    actor,
+    content,
+    origin,
+  }: {
+    actor: LocalActorRecord;
+    content: string;
+    origin: string;
+  }): Promise<LocalNoteRecord> {
+    const noteIdentifier = crypto.randomUUID();
+    const actorPath = getActorPath(actor.identifier);
+
+    return this.storage.createNote({
+      actorId: actor.id,
+      activityId: new URL(
+        `${actorPath}/activities/${noteIdentifier}`,
+        origin,
+      ).href,
+      objectId: new URL(`${actorPath}/statuses/${noteIdentifier}`, origin)
+        .href,
+      content,
+      publishedAt: new Date(),
+    });
+  }
+
   async toMastodonAccount(
     actor: LocalActorRecord,
     origin: string,

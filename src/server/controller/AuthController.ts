@@ -12,6 +12,11 @@ type LoginBody = {
   password?: unknown;
 };
 
+type CreateStatusBody = {
+  content?: unknown;
+  visibility?: unknown;
+};
+
 export function createAuthController(
   authentication: AuthService = authService,
   actors: ActorService = actorService,
@@ -55,6 +60,37 @@ export function createAuthController(
       await authentication.logout(getCookie(ctx, sessionCookieName));
       deleteCookie(ctx, sessionCookieName, { path: "/" });
       return ctx.body(null, 204);
+    })
+    .post("/api/v1/statuses", async (ctx) => {
+      const actor = await authentication.getSessionActor(
+        getCookie(ctx, sessionCookieName),
+      );
+      if (actor == null) return ctx.json({ error: "Unauthorized" }, 401);
+
+      let body: CreateStatusBody;
+      try {
+        body = await ctx.req.json<CreateStatusBody>();
+      } catch {
+        return ctx.json({ error: "Invalid JSON body" }, 400);
+      }
+      if (typeof body.content !== "string") {
+        return ctx.json({ error: "Content is required" }, 400);
+      }
+      if (body.visibility != null && body.visibility !== "public") {
+        return ctx.json({ error: "Only public posts are supported" }, 422);
+      }
+
+      const content = body.content.trim();
+      if (content.length === 0 || content.length > 500) {
+        return ctx.json(
+          { error: "Content must be between 1 and 500 characters" },
+          422,
+        );
+      }
+
+      const origin = getOrigin(ctx.req.raw);
+      const note = await actors.createPublicNote({ actor, content, origin });
+      return ctx.json(await actors.toMastodonStatus(note, actor, origin), 201);
     });
 }
 
