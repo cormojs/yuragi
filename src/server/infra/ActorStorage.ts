@@ -24,21 +24,31 @@ export type ActorStorage = {
 
 export class PostgresActorStorage implements ActorStorage {
   async createActor(input: CreateActorInput): Promise<LocalActorRecord> {
-    const [created] = await db.insert(actors).values(input).returning();
-    if (created == null) {
-      throw new Error("Failed to create local actor.");
-    }
+    const [created] = await db
+      .insert(actors)
+      .values(input)
+      .onConflictDoNothing({ target: actors.identifier })
+      .returning();
+    if (created != null) return created;
 
-    return created;
+    const existing = await this.findActorByIdentifier(input.identifier);
+    if (existing != null) return existing;
+
+    throw new Error("Failed to create or retrieve local actor.");
   }
 
   async createNote(input: CreateNoteInput): Promise<LocalNoteRecord> {
-    const [created] = await db.insert(notes).values(input).returning();
-    if (created == null) {
-      throw new Error("Failed to create note.");
-    }
+    const [created] = await db
+      .insert(notes)
+      .values(input)
+      .onConflictDoNothing({ target: notes.objectId })
+      .returning();
+    if (created != null) return created;
 
-    return created;
+    const existing = await this.findNoteByObjectId(input.objectId);
+    if (existing != null) return existing;
+
+    throw new Error("Failed to create or retrieve local note.");
   }
 
   findActorByIdentifier(

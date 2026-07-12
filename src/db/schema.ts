@@ -23,6 +23,7 @@ export const actors = pgTable(
     followingUrl: text("following_url").notNull(),
     publicKeyJwk: jsonb("public_key_jwk").notNull(),
     privateKeyJwk: jsonb("private_key_jwk").notNull(),
+    passwordHash: text("password_hash"),
     discoverable: boolean("discoverable").notNull().default(true),
     indexable: boolean("indexable").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -35,6 +36,25 @@ export const actors = pgTable(
   (table) => [
     uniqueIndex("actors_identifier_unique").on(table.identifier),
     index("actors_preferred_username_idx").on(table.preferredUsername),
+  ],
+);
+
+export const authSessions = pgTable(
+  "auth_sessions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorId: uuid("actor_id")
+      .notNull()
+      .references(() => actors.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("auth_sessions_token_hash_unique").on(table.tokenHash),
+    index("auth_sessions_actor_id_idx").on(table.actorId),
   ],
 );
 

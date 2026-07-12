@@ -7,7 +7,7 @@ import {
   PUBLIC_COLLECTION,
 } from "@fedify/vocab";
 import { Temporal } from "@js-temporal/polyfill";
-import { getActorPath, isLocalActor } from "../LocalActor";
+import { getActorPath } from "../LocalActor";
 import {
   actorService,
   type ActorService,
@@ -17,14 +17,6 @@ import {
 
 export type FederationContextData = {
   origin: string;
-};
-
-export type FederationDependencies = {
-  isLocalActor: typeof isLocalActor;
-};
-
-const defaultDependencies: FederationDependencies = {
-  isLocalActor,
 };
 
 async function createPerson({
@@ -85,10 +77,7 @@ function createOutboxItem({
 }
 
 export class FederationService {
-  constructor(
-    private readonly actorService: ActorService,
-    private readonly dependencies: FederationDependencies = defaultDependencies,
-  ) {}
+  constructor(private readonly actorService: ActorService) {}
 
   getNodeInfo(): NodeInfo {
     return {
@@ -117,40 +106,29 @@ export class FederationService {
     context: RequestContext<FederationContextData>,
     identifier: string,
   ) {
-    if (!this.dependencies.isLocalActor(identifier)) return null;
-
-    const actor = await this.actorService.ensureLocalActor({
-      identifier,
-      origin: context.data.origin,
-    });
+    const actor = await this.actorService.findActorByIdentifier(identifier);
+    if (actor == null) return null;
 
     return createPerson({ actor, context, identifier });
   }
 
   async getActorKeyPairs(
-    context: Context<FederationContextData>,
+    _context: Context<FederationContextData>,
     identifier: string,
   ) {
-    if (!this.dependencies.isLocalActor(identifier)) return [];
-
-    const actor = await this.actorService.ensureLocalActor({
-      identifier,
-      origin: context.data.origin,
-    });
+    const actor = await this.actorService.findActorByIdentifier(identifier);
+    if (actor == null) return [];
 
     return [await this.actorService.importActorKeyPair(actor)];
   }
 
   async getInbox(
-    context: RequestContext<FederationContextData>,
+    _context: RequestContext<FederationContextData>,
     identifier: string,
   ) {
-    if (!this.dependencies.isLocalActor(identifier)) return null;
-
-    await this.actorService.ensureLocalActor({
-      identifier,
-      origin: context.data.origin,
-    });
+    if ((await this.actorService.findActorByIdentifier(identifier)) == null) {
+      return null;
+    }
 
     return { items: [] };
   }
@@ -159,12 +137,8 @@ export class FederationService {
     context: RequestContext<FederationContextData>,
     identifier: string,
   ) {
-    if (!this.dependencies.isLocalActor(identifier)) return null;
-
-    const actor = await this.actorService.ensureLocalActor({
-      identifier,
-      origin: context.data.origin,
-    });
+    const actor = await this.actorService.findActorByIdentifier(identifier);
+    if (actor == null) return null;
     const actorUri = context.getActorUri(identifier);
     const notes = await this.actorService.listNotesForActor(actor.id);
 
@@ -174,71 +148,55 @@ export class FederationService {
   }
 
   async countOutbox(
-    context: RequestContext<FederationContextData>,
+    _context: RequestContext<FederationContextData>,
     identifier: string,
   ) {
-    if (!this.dependencies.isLocalActor(identifier)) return null;
-
-    const actor = await this.actorService.ensureLocalActor({
-      identifier,
-      origin: context.data.origin,
-    });
+    const actor = await this.actorService.findActorByIdentifier(identifier);
+    if (actor == null) return null;
 
     return (await this.actorService.listNotesForActor(actor.id)).length;
   }
 
   async getFollowers(
-    context: Context<FederationContextData>,
+    _context: Context<FederationContextData>,
     identifier: string,
   ) {
-    if (!this.dependencies.isLocalActor(identifier)) return null;
-
-    await this.actorService.ensureLocalActor({
-      identifier,
-      origin: context.data.origin,
-    });
+    if ((await this.actorService.findActorByIdentifier(identifier)) == null) {
+      return null;
+    }
 
     return { items: [] };
   }
 
   async countFollowers(
-    context: RequestContext<FederationContextData>,
+    _context: RequestContext<FederationContextData>,
     identifier: string,
   ) {
-    if (!this.dependencies.isLocalActor(identifier)) return null;
-
-    await this.actorService.ensureLocalActor({
-      identifier,
-      origin: context.data.origin,
-    });
+    if ((await this.actorService.findActorByIdentifier(identifier)) == null) {
+      return null;
+    }
 
     return 0;
   }
 
   async getFollowing(
-    context: RequestContext<FederationContextData>,
+    _context: RequestContext<FederationContextData>,
     identifier: string,
   ) {
-    if (!this.dependencies.isLocalActor(identifier)) return null;
-
-    await this.actorService.ensureLocalActor({
-      identifier,
-      origin: context.data.origin,
-    });
+    if ((await this.actorService.findActorByIdentifier(identifier)) == null) {
+      return null;
+    }
 
     return { items: [] };
   }
 
   async countFollowing(
-    context: RequestContext<FederationContextData>,
+    _context: RequestContext<FederationContextData>,
     identifier: string,
   ) {
-    if (!this.dependencies.isLocalActor(identifier)) return null;
-
-    await this.actorService.ensureLocalActor({
-      identifier,
-      origin: context.data.origin,
-    });
+    if ((await this.actorService.findActorByIdentifier(identifier)) == null) {
+      return null;
+    }
 
     return 0;
   }

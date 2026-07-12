@@ -61,6 +61,8 @@ export type MastodonStatus = {
 type ActorSeed = {
   origin: string;
   identifier?: string;
+  name?: string;
+  summary?: string;
 };
 
 function actorUrls(origin: string, identifier: string) {
@@ -80,6 +82,8 @@ export class ActorService {
   async ensureLocalActor({
     origin,
     identifier = localActor.identifier,
+    name,
+    summary,
   }: ActorSeed): Promise<LocalActorRecord> {
     const existing = await this.findActorByIdentifier(identifier);
     if (existing != null) {
@@ -92,8 +96,8 @@ export class ActorService {
     const created = await this.storage.createActor({
       identifier,
       preferredUsername: identifier,
-      name: localActor.name,
-      summary: localActor.summary,
+      name: name ?? identifier,
+      summary: summary ?? localActor.summary,
       inboxUrl: urls.inboxUrl,
       outboxUrl: urls.outboxUrl,
       followersUrl: urls.followersUrl,
