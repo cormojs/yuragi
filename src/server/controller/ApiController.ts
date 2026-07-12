@@ -8,7 +8,6 @@ export function createApiController(service: ActorService = actorService) {
   return new Hono()
     .get("/api/v1/instance", async (ctx) => {
       const origin = getOrigin(ctx.req.raw);
-      await service.ensureLocalActor({ origin });
 
       return ctx.json(
         {
@@ -63,7 +62,6 @@ export function createApiController(service: ActorService = actorService) {
     })
     .get("/api/v1/accounts/lookup", async (ctx) => {
       const origin = getOrigin(ctx.req.raw);
-      await service.ensureLocalActor({ origin });
 
       const acct = ctx.req.query("acct");
       if (acct == null || acct === "") {
@@ -77,7 +75,6 @@ export function createApiController(service: ActorService = actorService) {
     })
     .get("/api/v1/accounts/:id", async (ctx) => {
       const origin = getOrigin(ctx.req.raw);
-      await service.ensureLocalActor({ origin });
 
       const actor = await service.findActorById(ctx.req.param("id"));
       if (actor == null) return ctx.json(mastodonNotFound, 404);
@@ -86,7 +83,6 @@ export function createApiController(service: ActorService = actorService) {
     })
     .get("/api/v1/accounts/:id/statuses", async (ctx) => {
       const origin = getOrigin(ctx.req.raw);
-      await service.ensureLocalActor({ origin });
 
       const actor = await service.findActorById(ctx.req.param("id"));
       if (actor == null) return ctx.json(mastodonNotFound, 404);
@@ -103,7 +99,6 @@ export function createApiController(service: ActorService = actorService) {
     })
     .get("/api/v1/timelines/public", async (ctx) => {
       const origin = getOrigin(ctx.req.raw);
-      await service.ensureLocalActor({ origin });
 
       const onlyLocal = ctx.req.query("local") === "true";
       if (!onlyLocal) {

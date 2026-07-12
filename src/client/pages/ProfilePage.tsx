@@ -1,11 +1,10 @@
 import { useParams } from "react-router";
 import { PageHeader } from "../components/PageHeader";
 import { useAccountProfile } from "../hooks/useAccountProfile";
-import { instanceStore } from "../stores/instanceStore";
 import { formatHandle } from "../utils/formatHandle";
 
 export function ProfilePage() {
-  const { identifier = instanceStore.localActor.identifier } = useParams();
+  const identifier = useParams().identifier ?? "";
   const { profile, isLoading, error } = useAccountProfile(identifier);
   const handle =
     profile?.handle != null
@@ -26,7 +25,7 @@ export function ProfilePage() {
         </div>
         <div>
           <p className="handle">{handle}</p>
-          <p>{profile?.summary ?? instanceStore.localActor.summary}</p>
+          <p>{profile?.summary ?? ""}</p>
           {profile != null ? (
             <dl className="profile-stats">
               <div>

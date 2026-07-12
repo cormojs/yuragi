@@ -5,7 +5,7 @@ import {
   type LocalActorRecord,
   type LocalNoteRecord,
 } from "../infra/ActorStorage";
-import { getActorPath, localActor } from "../LocalActor";
+import { getActorPath } from "../LocalActor";
 
 export type { ActorStorage, LocalActorRecord, LocalNoteRecord };
 
@@ -60,7 +60,7 @@ export type MastodonStatus = {
 
 type ActorSeed = {
   origin: string;
-  identifier?: string;
+  identifier: string;
   name?: string;
   summary?: string;
 };
@@ -79,17 +79,14 @@ function actorUrls(origin: string, identifier: string) {
 export class ActorService {
   constructor(private readonly storage: ActorStorage) {}
 
-  async ensureLocalActor({
+  async createAccountActor({
     origin,
-    identifier = localActor.identifier,
+    identifier,
     name,
     summary,
   }: ActorSeed): Promise<LocalActorRecord> {
     const existing = await this.findActorByIdentifier(identifier);
-    if (existing != null) {
-      await this.ensureWelcomeNote({ actor: existing, origin });
-      return existing;
-    }
+    if (existing != null) return existing;
 
     const keyPair = await generateCryptoKeyPair("RSASSA-PKCS1-v1_5");
     const urls = actorUrls(origin, identifier);
@@ -97,7 +94,7 @@ export class ActorService {
       identifier,
       preferredUsername: identifier,
       name: name ?? identifier,
-      summary: summary ?? localActor.summary,
+      summary,
       inboxUrl: urls.inboxUrl,
       outboxUrl: urls.outboxUrl,
       followersUrl: urls.followersUrl,
@@ -106,31 +103,7 @@ export class ActorService {
       privateKeyJwk: await exportJwk(keyPair.privateKey),
     });
 
-    await this.ensureWelcomeNote({ actor: created, origin });
     return created;
-  }
-
-  async ensureWelcomeNote({
-    actor,
-    origin,
-  }: {
-    actor: LocalActorRecord;
-    origin: string;
-  }): Promise<LocalNoteRecord> {
-    const actorPath = getActorPath(actor.identifier);
-    const objectId = new URL(`${actorPath}/statuses/welcome`, origin).href;
-    const existing = await this.storage.findNoteByObjectId(objectId);
-
-    if (existing != null) return existing;
-
-    return this.storage.createNote({
-      actorId: actor.id,
-      activityId: new URL(`${actorPath}/activities/welcome-create`, origin)
-        .href,
-      objectId,
-      content: "yuragi is online.",
-      publishedAt: new Date("2026-07-06T00:00:00Z"),
-    });
   }
 
   findActorByIdentifier(

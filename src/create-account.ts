@@ -1,4 +1,4 @@
-import { getActorPath, localActor } from "./server/LocalActor";
+import { getActorPath } from "./server/LocalActor";
 import { authService, isValidAccountIdentifier } from "./server/service/AuthService";
 import { actorService } from "./server/service/actorService";
 
@@ -40,9 +40,9 @@ if (password.length < 8) {
 }
 
 try {
-  await actorService.ensureLocalActor({
+  await actorService.createAccountActor({
     identifier,
-    name: name ?? localActor.name,
+    name,
     origin,
   });
   const actor = await authService.setInitialPassword({ identifier, password });
