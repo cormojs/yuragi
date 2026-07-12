@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
-import { Alert, Card, List, Spin, Typography } from "antd";
-import { getCurrentAccount } from "../api/client";
+import { Alert, Button, Card, List, Spin, Typography } from "antd";
+import {
+  favouriteStatus,
+  getCurrentAccount,
+  unfavouriteStatus,
+} from "../api/client";
 import { PageHeader } from "../components/PageHeader";
 import { PostComposer } from "../components/PostComposer";
 import { useTimeline } from "../hooks/useTimeline";
@@ -8,12 +12,31 @@ import { useTimeline } from "../hooks/useTimeline";
 export function HomePage() {
   const { posts, isLoading, error, reload } = useTimeline();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [favouritingPostId, setFavouritingPostId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     getCurrentAccount()
       .then((account) => setIsAuthenticated(account != null))
       .catch(() => setIsAuthenticated(false));
   }, []);
+
+  async function toggleFavourite(postId: string, favourited: boolean) {
+    if (favouritingPostId != null) return;
+
+    setFavouritingPostId(postId);
+    try {
+      if (favourited) {
+        await unfavouriteStatus(postId);
+      } else {
+        await favouriteStatus(postId);
+      }
+      await reload();
+    } finally {
+      setFavouritingPostId(null);
+    }
+  }
 
   return (
     <section className="page">
@@ -39,6 +62,16 @@ export function HomePage() {
               <Typography.Paragraph style={{ marginBottom: 0, marginTop: 12 }}>
                 {post.content}
               </Typography.Paragraph>
+              <Button
+                aria-pressed={post.favourited}
+                disabled={!isAuthenticated}
+                loading={favouritingPostId === post.id}
+                onClick={() => void toggleFavourite(post.id, post.favourited)}
+                style={{ marginTop: 12 }}
+                type={post.favourited ? "primary" : "default"}
+              >
+                {post.favourited ? "Favourited" : "Favourite"} ({post.favouritesCount})
+              </Button>
             </Card>
           </List.Item>
         )}

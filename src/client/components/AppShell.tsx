@@ -31,11 +31,14 @@ export function AppShell() {
     navigate("/login");
   }
 
-  const accountNavItem =
+  const accountNavItems =
     account == null
-      ? { to: "/login", label: "Log in" }
-      : { to: `/users/${account.username}`, label: "Profile" };
-  const menuItems = [...navItems, accountNavItem].map((item) => ({
+      ? [{ to: "/login", label: "Log in" }]
+      : [
+          { to: `/users/${account.username}`, label: "Profile" },
+          { to: "/settings/profile", label: "Edit profile" },
+        ];
+  const menuItems = [...navItems, ...accountNavItems].map((item) => ({
     key: item.to,
     label: <NavLink to={item.to}>{item.label}</NavLink>,
   }));

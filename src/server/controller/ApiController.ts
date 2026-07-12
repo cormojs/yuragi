@@ -1,17 +1,25 @@
 import { zValidator } from "@hono/zod-validator";
+import { getCookie } from "hono/cookie";
 import { Hono } from "hono";
 import { z } from "zod";
 import { authController } from "./AuthController";
 import { getOrigin } from "../LocalActor";
 import { actorService, type ActorService } from "../service/actorService";
+import { authService, type AuthService } from "../service/AuthService";
 
 const mastodonNotFound = { error: "Record not found" };
 const accountLookupQuerySchema = z.object({
   acct: z.string().trim().min(1).max(255),
 });
 const accountIdParamSchema = z.object({ id: z.uuid() });
+const publicTimelineQuerySchema = z.object({
+  local: z.enum(["true"]).optional(),
+});
 
-export function createApiController(service: ActorService = actorService) {
+export function createApiController(
+  service: ActorService = actorService,
+  authentication: AuthService = authService,
+) {
   return new Hono()
     .get("/api/v1/instance", async (ctx) => {
       const origin = getOrigin(ctx.req.raw);
@@ -122,27 +130,60 @@ export function createApiController(service: ActorService = actorService) {
         );
       },
     )
-    .get("/api/v1/timelines/public", async (ctx) => {
-      const origin = getOrigin(ctx.req.raw);
+    .get(
+      "/api/v1/accounts/:id/followers",
+      zValidator("param", accountIdParamSchema, (result, ctx) => {
+        if (!result.success) return ctx.json({ error: "Invalid account ID" }, 400);
+      }),
+      async (ctx) => {
+        const { id } = ctx.req.valid("param");
+        const actor = await service.findActorById(id);
+        if (actor == null) return ctx.json(mastodonNotFound, 404);
 
-      const onlyLocal = ctx.req.query("local") === "true";
-      if (!onlyLocal) {
+        const followers = await service.listAcceptedFollowersForActor(actor.id);
         return ctx.json(
-          { error: "Only the local public timeline is available" },
-          400,
+          followers.map((follower) => ({
+            id: follower.id,
+            uri: follower.followerActorUri,
+          })),
+          200,
         );
-      }
+      },
+    )
+    .get(
+      "/api/v1/timelines/public",
+      zValidator("query", publicTimelineQuerySchema, (result, ctx) => {
+        if (!result.success) return ctx.json({ error: "Invalid query" }, 400);
+      }),
+      async (ctx) => {
+        const origin = getOrigin(ctx.req.raw);
 
-      const rows = await service.listPublicLocalNotes();
-      return ctx.json(
-        await Promise.all(
-          rows.map(({ actor, note }) =>
-            service.toMastodonStatus(note, actor, origin),
+        const { local } = ctx.req.valid("query");
+        if (local !== "true") {
+          return ctx.json(
+            { error: "Only the local public timeline is available" },
+            400,
+          );
+        }
+
+        const viewer = await authentication.getSessionActor(
+          getCookie(ctx, "yuragi_session"),
+        );
+        const viewerActorUri =
+          viewer == null
+            ? undefined
+            : new URL(`/users/${viewer.identifier}`, origin).href;
+        const rows = await service.listPublicLocalNotes();
+        return ctx.json(
+          await Promise.all(
+            rows.map(({ actor, note }) =>
+              service.toMastodonStatus(note, actor, origin, viewerActorUri),
+            ),
           ),
-        ),
-        200,
-      );
-    });
+          200,
+        );
+      },
+    );
 }
 
 export const apiController = createApiController().route("/", authController);

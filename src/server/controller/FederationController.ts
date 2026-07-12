@@ -1,7 +1,7 @@
 import { createFederation, MemoryKvStore } from "@fedify/fedify";
 import type { Context as HonoContext, MiddlewareHandler } from "hono";
 import { federation as fedifyMiddleware } from "@fedify/hono";
-import { Activity, Follow } from "@fedify/vocab";
+import { Activity, Create, Follow, Like, Note, Undo } from "@fedify/vocab";
 import { getOrigin } from "../LocalActor";
 import {
   federationService,
@@ -20,6 +20,7 @@ export async function createFederationMiddleware(
       software: `${serverName}/0.1.0`,
     },
   });
+  service.setFederation(federation);
 
   federation.setNodeInfoDispatcher("/nodeinfo/2.1", () =>
     service.getNodeInfo(),
@@ -34,9 +35,29 @@ export async function createFederationMiddleware(
     );
 
   federation
+    .setObjectDispatcher(
+      Note,
+      "/users/{identifier}/statuses/{statusId}",
+      (ctx, values) => service.getStatus(ctx, values),
+    );
+
+  federation
+    .setObjectDispatcher(
+      Create,
+      "/users/{identifier}/activities/{activityId}",
+      (ctx, values) => service.getCreateActivity(ctx, values),
+    );
+
+  federation
     .setInboxListeners("/users/{identifier}/inbox", "/inbox")
     .on(Follow, async (ctx, follow) => {
-      console.log("received Follow", ctx.recipient, follow.actorId?.href);
+      await service.acceptFollow(ctx, follow);
+    })
+    .on(Like, async (ctx, like) => {
+      await service.acceptLike(ctx, like);
+    })
+    .on(Undo, async (ctx, undo) => {
+      await service.acceptUndo(ctx, undo);
     })
     .on(Activity, async (ctx, activity) => {
       console.log(

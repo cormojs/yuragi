@@ -15,6 +15,20 @@
       "when": 1783826872659,
       "tag": "0001_faithful_proteus",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783844664074,
+      "tag": "0002_regular_zzzax",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1783850756140,
+      "tag": "0003_white_baron_zemo",
+      "breakpoints": true
     }
   ]
 }

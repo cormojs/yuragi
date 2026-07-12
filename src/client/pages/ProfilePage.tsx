@@ -44,6 +44,27 @@ export function ProfilePage() {
         ) : null}
       </Card>
       {profile != null ? (
+        <Card title={`Followers (${profile.followers.length})`}>
+          <List
+            dataSource={profile.followers}
+            locale={{ emptyText: "No followers yet." }}
+            renderItem={(follower) => (
+              <List.Item key={follower.id}>
+                <List.Item.Meta
+                  avatar={<Avatar>{follower.handle.slice(1, 2).toUpperCase()}</Avatar>}
+                  description={follower.uri}
+                  title={
+                    <Typography.Link href={follower.uri} rel="noreferrer" target="_blank">
+                      {follower.handle}
+                    </Typography.Link>
+                  }
+                />
+              </List.Item>
+            )}
+          />
+        </Card>
+      ) : null}
+      {profile != null ? (
         <List
           dataSource={profile.posts}
           itemLayout="vertical"

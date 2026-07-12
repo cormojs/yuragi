@@ -4,4 +4,6 @@ export type TimelinePost = {
   content: string;
   publishedAt: string;
   publishedLabel: string;
+  favouritesCount: number;
+  favourited: boolean;
 };
