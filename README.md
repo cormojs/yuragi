@@ -13,6 +13,27 @@ bun run build
 bun run src/index.ts
 ```
 
+When running behind a trusted reverse proxy or `fedify tunnel`, set
+`BEHIND_PROXY=true` so the public protocol and host are taken from the
+`X-Forwarded-*` headers. Do not enable it when the server is directly exposed
+to untrusted clients.
+
+## TLS with Caddy
+
+Use the included `Caddyfile` to terminate TLS and proxy requests to yuragi.
+Point the domain's A/AAAA records to the Caddy host and allow inbound port
+8080. For Caddy to obtain and renew a publicly trusted certificate, also allow
+ports 80 and 443 or forward them to Caddy's HTTP and HTTPS listeners. Then run
+the application only behind Caddy:
+
+```bash
+BEHIND_PROXY=true YURAGI_ORIGIN=https://social.example.com:8080 bun run src/index.ts
+YURAGI_DOMAIN=social.example.com caddy run --config Caddyfile --adapter caddyfile
+```
+
+Caddy automatically obtains and renews the certificate, redirects HTTP to
+HTTPS, and sets the `X-Forwarded-*` headers consumed by yuragi.
+
 ## Local accounts
 
 Generate and apply the migration, then create a local account. Only the account
