@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { getAccountStatuses, lookupAccount } from "../api/client";
+import {
+  getAccountFollowers,
+  getAccountStatuses,
+  lookupAccount,
+} from "../api/client";
 import type { TimelinePost } from "../types/timeline";
 
 type AccountProfile = {
@@ -11,6 +15,7 @@ type AccountProfile = {
   statusesCount: number;
   followersCount: number;
   followingCount: number;
+  followers: { id: string; uri: string; handle: string }[];
   posts: TimelinePost[];
 };
 
@@ -20,6 +25,12 @@ function formatPublishedLabel(value: string): string {
     day: "numeric",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function formatFollowerHandle(uri: string): string {
+  const url = new URL(uri);
+  const identifier = url.pathname.split("/").filter(Boolean).at(-1) ?? url.host;
+  return `@${identifier}@${url.host}`;
 }
 
 export function useAccountProfile(identifier: string) {
@@ -33,7 +44,10 @@ export function useAccountProfile(identifier: string) {
 
     lookupAccount(identifier)
       .then(async (account) => {
-        const statuses = await getAccountStatuses(account.id);
+        const [statuses, followers] = await Promise.all([
+          getAccountStatuses(account.id),
+          getAccountFollowers(account.id),
+        ]);
         return {
           id: account.id,
           username: account.username,
@@ -43,12 +57,19 @@ export function useAccountProfile(identifier: string) {
           statusesCount: account.statuses_count,
           followersCount: account.followers_count,
           followingCount: account.following_count,
+          followers: followers.map((follower) => ({
+            id: follower.id,
+            uri: follower.uri,
+            handle: formatFollowerHandle(follower.uri),
+          })),
           posts: statuses.map((status) => ({
             id: status.id,
             author: status.account.display_name || status.account.username,
             content: status.content,
             publishedAt: status.created_at,
             publishedLabel: formatPublishedLabel(status.created_at),
+            favouritesCount: status.favourites_count,
+            favourited: status.favourited,
           })),
         } satisfies AccountProfile;
       })

@@ -2,12 +2,26 @@ import { exportJwk, generateCryptoKeyPair, importJwk } from "@fedify/fedify";
 import {
   actorStorage,
   type ActorStorage,
+  type CreateFollowerInput,
+  type CreateFavouriteInput,
   type LocalActorRecord,
+  type LocalFavouriteRecord,
+  type LocalFollowerRecord,
   type LocalNoteRecord,
+  type UpdateActorProfileInput,
 } from "../infra/ActorStorage";
 import { getActorPath } from "../LocalActor";
 
-export type { ActorStorage, LocalActorRecord, LocalNoteRecord };
+export type {
+  ActorStorage,
+  CreateFollowerInput,
+  CreateFavouriteInput,
+  LocalActorRecord,
+  LocalFavouriteRecord,
+  LocalFollowerRecord,
+  LocalNoteRecord,
+  UpdateActorProfileInput,
+};
 
 export type MastodonAccount = {
   id: string;
@@ -54,6 +68,7 @@ export type MastodonStatus = {
   favourites_count: number;
   replies_count: number;
   reblog: null;
+  favourited: boolean;
   in_reply_to_id: null;
   in_reply_to_account_id: null;
 };
@@ -122,6 +137,13 @@ export class ActorService {
     return this.findActorByIdentifier(username);
   }
 
+  updateActorProfile(
+    id: string,
+    input: UpdateActorProfileInput,
+  ): Promise<LocalActorRecord | undefined> {
+    return this.storage.updateActorProfile(id, input);
+  }
+
   async importActorKeyPair(actor: LocalActorRecord): Promise<CryptoKeyPair> {
     return {
       publicKey: await importJwk(actor.publicKeyJwk as JsonWebKey, "public"),
@@ -131,6 +153,55 @@ export class ActorService {
 
   listNotesForActor(actorId: string): Promise<LocalNoteRecord[]> {
     return this.storage.listNotesForActor(actorId);
+  }
+
+  findNoteById(id: string): Promise<LocalNoteRecord | undefined> {
+    return this.storage.findNoteById(id);
+  }
+
+  findNoteByObjectId(objectId: string): Promise<LocalNoteRecord | undefined> {
+    return this.storage.findNoteByObjectId(objectId);
+  }
+
+  findNoteByActivityId(
+    activityId: string,
+  ): Promise<LocalNoteRecord | undefined> {
+    return this.storage.findNoteByActivityId(activityId);
+  }
+
+  findFavouriteByNoteAndActor(
+    noteId: string,
+    actorUri: string,
+  ): Promise<LocalFavouriteRecord | undefined> {
+    return this.storage.findFavouriteByNoteAndActor(noteId, actorUri);
+  }
+
+  findFavouriteByActivityId(
+    activityId: string,
+  ): Promise<LocalFavouriteRecord | undefined> {
+    return this.storage.findFavouriteByActivityId(activityId);
+  }
+
+  createFavourite(input: CreateFavouriteInput): Promise<LocalFavouriteRecord> {
+    return this.storage.createFavourite(input);
+  }
+
+  deleteFavourite(id: string): Promise<void> {
+    return this.storage.deleteFavourite(id);
+  }
+
+  createFollower(input: CreateFollowerInput): Promise<LocalFollowerRecord> {
+    return this.storage.createFollower(input);
+  }
+
+  markFollowerAccepted(id: string): Promise<LocalFollowerRecord | undefined> {
+    return this.storage.markFollowerAccepted(id);
+  }
+
+  listAcceptedFollowersForActor(
+    actorId: string,
+  ): Promise<LocalFollowerRecord[]> {
+    return this.storage.listAcceptedFollowersForActor(actorId);
   }
 
   listPublicLocalNotes(): Promise<
@@ -203,7 +274,15 @@ export class ActorService {
     note: LocalNoteRecord,
     actor: LocalActorRecord,
     origin: string,
+    viewerActorUri?: string,
   ): Promise<MastodonStatus> {
+    const [favouritesCount, viewerFavourite] = await Promise.all([
+      this.storage.countFavouritesForNote(note.id),
+      viewerActorUri == null
+        ? undefined
+        : this.storage.findFavouriteByNoteAndActor(note.id, viewerActorUri),
+    ]);
+
     return {
       id: note.id,
       uri: note.objectId,
@@ -220,9 +299,10 @@ export class ActorService {
       tags: [],
       emojis: [],
       reblogs_count: 0,
-      favourites_count: 0,
+      favourites_count: favouritesCount,
       replies_count: 0,
       reblog: null,
+      favourited: viewerFavourite != null,
       in_reply_to_id: null,
       in_reply_to_account_id: null,
     };

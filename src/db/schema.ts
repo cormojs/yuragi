@@ -58,6 +58,30 @@ export const authSessions = pgTable(
   ],
 );
 
+export const followers = pgTable(
+  "followers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    actorId: uuid("actor_id")
+      .notNull()
+      .references(() => actors.id, { onDelete: "cascade" }),
+    followerActorUri: text("follower_actor_uri").notNull(),
+    followerInboxUri: text("follower_inbox_uri").notNull(),
+    followerSharedInboxUri: text("follower_shared_inbox_uri"),
+    followedAt: timestamp("followed_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("followers_actor_follower_unique").on(
+      table.actorId,
+      table.followerActorUri,
+    ),
+    index("followers_actor_accepted_idx").on(table.actorId, table.acceptedAt),
+  ],
+);
+
 export const notes = pgTable(
   "notes",
   {
@@ -82,5 +106,28 @@ export const notes = pgTable(
     uniqueIndex("notes_activity_id_unique").on(table.activityId),
     uniqueIndex("notes_object_id_unique").on(table.objectId),
     index("notes_actor_id_idx").on(table.actorId),
+  ],
+);
+
+export const favourites = pgTable(
+  "favourites",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    noteId: uuid("note_id")
+      .notNull()
+      .references(() => notes.id, { onDelete: "cascade" }),
+    actorUri: text("actor_uri").notNull(),
+    activityId: text("activity_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("favourites_note_actor_unique").on(
+      table.noteId,
+      table.actorUri,
+    ),
+    uniqueIndex("favourites_activity_id_unique").on(table.activityId),
+    index("favourites_note_id_idx").on(table.noteId),
   ],
 );
